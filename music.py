@@ -12,7 +12,6 @@ class music(commands.Cog):
             await ctx.send("Connect to a channel first please.")
         
         voice_channel = ctx.author.voice.channel
-        await ctx.send(voice_channel)
 
         if ctx.voice_client is None:
             await voice_channel.connect()
@@ -26,6 +25,12 @@ class music(commands.Cog):
     @commands.command(name = "play", aliases=["start"])
     async def play(self, ctx, url):
         try:
+            voice_channel = ctx.author.voice.channel
+            if ctx.voice_client is None:
+                    await voice_channel.connect()
+            else:
+                await ctx.voice_channel.move_to(voice_channel)
+
             ctx.voice_client.stop()
         except:
             pass

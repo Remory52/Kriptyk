@@ -16,8 +16,9 @@ cogs = [music, general]
 for cog in cogs:
     cog.setup(client)
 
-client.run(apiKey)
-
 @client.event
 async def on_ready():
-    print(f"Well hello there.")
+    print(f'{client.user} well hi!')
+    print(f'Server population: {len([member.name for member in client.guilds[0].members])}')
+
+client.run(apiKey)

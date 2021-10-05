@@ -1,6 +1,7 @@
 import sys
 import discord
 from discord.ext import commands
+import music
 
 class general(commands.Cog):
     def __init__(self, client):
@@ -9,6 +10,10 @@ class general(commands.Cog):
     @commands.command(name = "kill", aliases=["shutdown", "sh"])
     async def kill(self, ctx):
         if ctx.author.name == "Remory":
+            try: 
+                await ctx.voice_client.disconnect()
+            except:
+                pass
             await ctx.send("Pulling the cord.")
             sys.exit()
         await ctx.send("You are not authorized to execute this command!")
