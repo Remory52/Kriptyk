@@ -7,11 +7,12 @@ class music(commands.Cog):
         self.client = client
 
     @commands.command(name = "join", aliases=["come"])
-    async def join(self, ctx):
-        if ctx.author.voice is None:
-            await ctx.send("dik cigaany")
+    async def join(self, ctx, channel=None):
+        if ctx.author.voice is None and channel is None:
+            await ctx.send("Connect to a channel first please.")
         
         voice_channel = ctx.author.voice.channel
+        await ctx.send(voice_channel)
 
         if ctx.voice_client is None:
             await voice_channel.connect()
