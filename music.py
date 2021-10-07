@@ -2,21 +2,54 @@ import youtube_dl
 import discord
 from discord.ext import commands
 
+class queue:
+    def __init__(self):
+        self.queue = []
+
+    def nextSong(self):
+        song = self.queue.pop(0)
+
+        return song
+
+    def addSong(self, url):
+        self.queue.append(url)
+
+    def clear(self):
+        self.queue.clear()
+
 class music(commands.Cog):
     def __init__(self, client):
         self.client = client
+        self.que = queue()
 
-    @commands.command(name = "join", aliases=["come"])
-    async def join(self, ctx, channel=None):
-        if ctx.author.voice is None and channel is None:
+    FFMPEG_OPTIONS = {'before_options':'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options':'-vn'}
+    YDL_OPTIONS = {'format':'bestaudio', 'quiet':True}
+
+    @commands.command(name = "join", aliases=["j", "connect", "c"])
+    async def join(self, ctx, *args):
+        voice_channel = None
+        if args is not None:
+            wannabe_channel = ' '.join(args)
+            channel = discord.utils.find(lambda c: str(c.name) == wannabe_channel, ctx.guild.voice_channels)
+            if channel is not None:
+                voice_channel = channel
+            else:
+                await ctx.send("A channel with this name does not exist.")
+                return
+        elif ctx.author.voice is not None:
+             voice_channel = ctx.author.voice.channel
+        else:
             await ctx.send("Connect to a channel first please.")
-        
-        voice_channel = ctx.author.voice.channel
+            return
 
         if ctx.voice_client is None:
             await voice_channel.connect()
         else:
+            if ctx.voice_client.is_playing():
+                return
             await ctx.voice_channel.move_to(voice_channel)
+
+        ctx.voice_client.stop()
 
     @commands.command(name = "disconnect", aliases=["leave"])
     async def disconnect(self, ctx):
@@ -24,27 +57,43 @@ class music(commands.Cog):
 
     @commands.command(name = "play", aliases=["start"])
     async def play(self, ctx, url):
-        try:
-            voice_channel = ctx.author.voice.channel
-            if ctx.voice_client is None:
-                    await voice_channel.connect()
-            else:
-                await ctx.voice_channel.move_to(voice_channel)
-
-            ctx.voice_client.stop()
-        except:
-            pass
+        if url != "SKIP":
+            await music.join(self, ctx, str(ctx.author.voice.channel))
         
-        FFMPEG_OPTIONS = {'before_options':'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options':'-vn'}
-        YDL_OPTIONS = {'format':'bestaudio'}
-
         voice_client = ctx.voice_client
 
-        with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
-            info = ydl.extract_info(url, download=False)
-            url2 = info['formats'][0]['url']
-            source = await discord.FFmpegOpusAudio.from_probe(url2, **FFMPEG_OPTIONS) 
-            voice_client.play(source)
+        if(len(self.que.queue) == 0):
+            self.que.addSong(url)
+
+        ctx.voice_client.stop()
+
+        await ctx.message.delete()
+
+        info = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(self.que.nextSong(), download=False)
+        await ctx.send(f"**Playing:** `{info['title']}`")
+        streamingURL = info['formats'][0]['url']
+        source = await discord.FFmpegOpusAudio.from_probe(streamingURL, **music.FFMPEG_OPTIONS) 
+        voice_client.play(source)
+
+    @commands.command(name = "skip", aliases=["sk", "s"])
+    async def skip(self, ctx):
+        if 0 < len(self.que.queue):
+            ctx.voice_client.stop()
+            await music.play(self, ctx, "SKIP")
+        else:
+            await ctx.message.delete()
+            await ctx.send(f"The queue is empty {ctx.author.name}!")
+
+    @commands.command(name = "queue", aliases=["que"])
+    async def queue(self, ctx, url):
+        await ctx.message.delete()
+        title = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(url, download=False)['title']
+        await ctx.send(f"**Queued:** `{title}`")
+        self.que.addSong(url)
+
+    @commands.command(name = "clear", aliases=["clearq", "cq"])
+    async def clear_queue(self, ctx):
+        self.que.clear()
 
     @commands.command(name = "pause", aliases=["hold"])
     async def pause(self, ctx):
