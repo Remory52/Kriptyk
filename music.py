@@ -1,6 +1,7 @@
 import youtube_dl
 import discord
 from discord.ext import commands
+#import searchEngine
 
 class queue:
     def __init__(self):
@@ -28,7 +29,7 @@ class music(commands.Cog):
     @commands.command(name = "join", aliases=["j", "connect", "c"])
     async def join(self, ctx, *args):
         voice_channel = None
-        if args is not None:
+        if args != tuple():
             wannabe_channel = ' '.join(args)
             channel = discord.utils.find(lambda c: str(c.name) == wannabe_channel, ctx.guild.voice_channels)
             if channel is not None:
@@ -38,6 +39,7 @@ class music(commands.Cog):
                 return
         elif ctx.author.voice is not None:
              voice_channel = ctx.author.voice.channel
+             print(voice_channel)
         else:
             await ctx.send("Connect to a channel first please.")
             return
@@ -61,9 +63,15 @@ class music(commands.Cog):
             await music.join(self, ctx, str(ctx.author.voice.channel))
         
         voice_client = ctx.voice_client
+        #voice_client = self.client.voice_client
 
         if(len(self.que.queue) == 0):
             self.que.addSong(url)
+            #if searchEngine.searchEngine.isUrl(url):
+            #    self.que.addSong(url)
+            #else:
+            #    song = searchEngine.searchEngine.makeQuery(url)
+            #    self.que.addSong(song)
 
         ctx.voice_client.stop()
 
