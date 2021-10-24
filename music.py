@@ -2,6 +2,7 @@ import youtube_dl
 import discord
 from discord.ext import commands
 #import searchEngine
+import time
 
 class queue:
     def __init__(self):
@@ -28,42 +29,42 @@ class music(commands.Cog):
 
     @commands.command(name = "join", aliases=["j", "connect", "c"])
     async def join(self, ctx, *args):
-        voice_channel = None
+        channel = None
         if args != tuple():
-            wannabe_channel = ' '.join(args)
-            channel = discord.utils.find(lambda c: str(c.name) == wannabe_channel, ctx.guild.voice_channels)
-            if channel is not None:
-                voice_channel = channel
-            else:
-                await ctx.send("A channel with this name does not exist.")
-                return
-        elif ctx.author.voice is not None:
-             voice_channel = ctx.author.voice.channel
-             print(voice_channel)
+            channel = discord.utils.find(lambda c: str(c.name) == ' '.join(args), ctx.guild.voice_channels)
         else:
-            await ctx.send("Connect to a channel first please.")
+            if ctx.author.voice == None:
+                await ctx.send("Connect to a channel first please.")
+                return
+
+            channel = ctx.author.voice.channel
+
+        if channel is None and args != tuple():
+            await ctx.send("A channel with this name does not exist.")
             return
 
-        if ctx.voice_client is None:
-            await voice_channel.connect()
+        if len(ctx.bot.voice_clients) == 0:
+            await channel.connect()
         else:
-            if ctx.voice_client.is_playing():
+            if ctx.bot.voice_clients[0].channel.name == channel.name:
                 return
-            await ctx.voice_channel.move_to(voice_channel)
+            else:
+                await ctx.voice_client.disconnect()
+                time.sleep(0.5)
+                await channel.connect()
 
         ctx.voice_client.stop()
 
-    @commands.command(name = "disconnect", aliases=["leave"])
+    @commands.command(name = "disconnect", aliases=["leave", "l"])
     async def disconnect(self, ctx):
         await ctx.voice_client.disconnect()
 
     @commands.command(name = "play", aliases=["start"])
     async def play(self, ctx, url):
         if url != "SKIP":
-            await music.join(self, ctx, str(ctx.author.voice.channel))
+            await music.join(self, ctx)
         
         voice_client = ctx.voice_client
-        #voice_client = self.client.voice_client
 
         if(len(self.que.queue) == 0):
             self.que.addSong(url)
