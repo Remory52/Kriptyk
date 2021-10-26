@@ -27,9 +27,8 @@ async def process_commands(msg):
 
     if ctx.command is not None:
         await client.invoke(ctx)
-    else:
+    #else:
         #await msg.reply("Can't wait!")
-        pass
 
 @client.event
 async def on_message(msg):

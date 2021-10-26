@@ -1,7 +1,7 @@
 import youtube_dl
 import discord
 from discord.ext import commands
-#import searchEngine
+import searchEngine
 import time
 
 class queue:
@@ -13,8 +13,8 @@ class queue:
 
         return song
 
-    def addSong(self, url):
-        self.queue.append(url)
+    def addSong(self, song):
+        self.queue.append(song)
 
     def clear(self):
         self.queue.clear()
@@ -27,7 +27,7 @@ class music(commands.Cog):
     FFMPEG_OPTIONS = {'before_options':'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options':'-vn'}
     YDL_OPTIONS = {'format':'bestaudio', 'quiet':True}
 
-    @commands.command(name = "join", aliases=["j", "connect", "c"])
+    @commands.command(name = "join", aliases=["j", "connect", "c"], help="Join a given voice chat.")
     async def join(self, ctx, *args):
         channel = None
         if args != tuple():
@@ -55,36 +55,40 @@ class music(commands.Cog):
 
         ctx.voice_client.stop()
 
-    @commands.command(name = "disconnect", aliases=["leave", "l"])
+    @commands.command(name = "disconnect", aliases=["leave", "l"], help="Leave voice chat.")
     async def disconnect(self, ctx):
         await ctx.voice_client.disconnect()
 
-    @commands.command(name = "play", aliases=["start"])
-    async def play(self, ctx, url):
+    @commands.command(name = "play", aliases=["start"], help="Play a given media.")
+    async def play(self, ctx, *args):
+        url = ' '.join(args)
+
         if url != "SKIP":
             await music.join(self, ctx)
         
         voice_client = ctx.voice_client
-
-        if(len(self.que.queue) == 0):
-            self.que.addSong(url)
-            #if searchEngine.searchEngine.isUrl(url):
-            #    self.que.addSong(url)
-            #else:
-            #    song = searchEngine.searchEngine.makeQuery(url)
-            #    self.que.addSong(song)
-
-        ctx.voice_client.stop()
-
         await ctx.message.delete()
 
-        info = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(self.que.nextSong(), download=False)
-        await ctx.send(f"**Playing:** `{info['title']}`")
-        streamingURL = info['formats'][0]['url']
-        source = await discord.FFmpegOpusAudio.from_probe(streamingURL, **music.FFMPEG_OPTIONS) 
+        progress = await ctx.send("Searching... :satellite:")
+
+        if(len(self.que.queue) == 0):
+            if searchEngine.searchEngine.isUrl(url):
+                info = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(url, download=False)
+                self.que.addSong((info['title'], info['formats'][0]['url']))
+            else:
+                song = searchEngine.searchEngine.search(url)
+                self.que.addSong(song)
+            
+
+        ctx.voice_client.stop()
+        nextSong = self.que.nextSong()
+
+        await progress.delete()
+        await ctx.send(f"**Playing:** `{nextSong[0]}`")
+        source = await discord.FFmpegOpusAudio.from_probe(nextSong[1], **music.FFMPEG_OPTIONS) 
         voice_client.play(source)
 
-    @commands.command(name = "skip", aliases=["sk", "s"])
+    @commands.command(name = "skip", aliases=["sk", "s"], help="Skip the now playing media.")
     async def skip(self, ctx):
         if 0 < len(self.que.queue):
             ctx.voice_client.stop()
@@ -93,26 +97,33 @@ class music(commands.Cog):
             await ctx.message.delete()
             await ctx.send(f"The queue is empty {ctx.author.name}!")
 
-    @commands.command(name = "queue", aliases=["que"])
-    async def queue(self, ctx, url):
+    @commands.command(name = "queue", aliases=["que"], help="Queue a song or a sound effect for future playing.")
+    async def queue(self, ctx, *args):
         await ctx.message.delete()
-        title = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(url, download=False)['title']
-        await ctx.send(f"**Queued:** `{title}`")
-        self.que.addSong(url)
 
-    @commands.command(name = "clear", aliases=["clearq", "cq"])
+        url = ' '.join(args)
+        if searchEngine.searchEngine.isUrl(url):
+            info = youtube_dl.YoutubeDL(music.YDL_OPTIONS).extract_info(url, download=False)
+            self.que.addSong((info['title'], info['formats'][0]['url']))
+            await ctx.send(f"**Queued:** `{info['title']}`")
+        else:
+            song = searchEngine.searchEngine.search(url)
+            self.que.addSong(song)
+            await ctx.send(f"**Queued:** `{song[0]}`")
+
+    @commands.command(name = "clear", aliases=["clearq", "cq"], help="Clear the media queue.")
     async def clear_queue(self, ctx):
         self.que.clear()
 
-    @commands.command(name = "pause", aliases=["hold"])
+    @commands.command(name = "pause", aliases=["hold"], help="Pause playing media.")
     async def pause(self, ctx):
         ctx.voice_client.pause()
 
-    @commands.command(name = "resume")
+    @commands.command(name = "resume", aliases=["res"], help="Resume playing media.")
     async def resume(self, ctx):
         ctx.voice_client.resume()
 
-    @commands.command(name = "stop", aliases=["cut"])
+    @commands.command(name = "stop", aliases=["cut"], help="Stop playing media.")
     async def stop(self, ctx):
         ctx.voice_client.stop()
 
