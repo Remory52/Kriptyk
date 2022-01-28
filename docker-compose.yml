@@ -1,0 +1,7 @@
+version: '3.5'
+services:
+  kriptyk:
+    build: .
+    container_name: Kriptyk
+    image: kriptyk_stable
+    restart: "unless-stopped"

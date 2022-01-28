@@ -4,7 +4,6 @@ import discord
 from discord.ext import commands
 import urllib.request
 import requests
-import ssl
 
 class general(commands.Cog):    
     def __init__(self, client):
@@ -13,13 +12,7 @@ class general(commands.Cog):
     @commands.command(name = "ip", aliases=["get_ip"], help="Get the Server's IP Address.")
     async def ip(self, ctx):
         if str(ctx.author) == str(os.getenv("owner")):
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                pass
-            else:
-                ssl._create_default_https_context = _create_unverified_https_context
-            await ctx.send("Server's IP address is: " + urllib.request.urlopen('https://ident.me').read().decode('utf8'))
+            await ctx.send("Server's IP address is: " + urllib.request.urlopen('http://ident.me').read().decode('utf8'))
         else:
             await ctx.send("You are not authorized to execute this command!")
 

@@ -1,4 +1,7 @@
-pip install python-dotenv
-pip install discord
-pip install youtube-dl
-apt install ffmpeg
+python-dotenv
+discord
+youtube-dl
+googlesearch-python
+pyopenssl
+cryptography==3.3
+pynacl
