@@ -3,5 +3,5 @@ services:
   kriptyk:
     build: .
     container_name: Kriptyk
-    image: kriptyk_stable
+    image: kriptyk
     restart: "unless-stopped"
